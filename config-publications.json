@@ -1,0 +1,41 @@
+{
+"plugin": {
+    "reference": "nist",
+    "type": "SOURCE",
+    "filenames": ["nist.py"],
+    "localstorage": true
+},
+"task": {
+    "log": -1,
+    "trigger": {
+      "type": "SCHEDULE",
+      "interval": "7 day"
+    }
+},
+"middleware": {
+    "modules": [
+        { "order": 1, "name": "TimezoneSafeControl", "critical": true, "params": {}},
+        { "order": 2, "name": "CutJunkCharactersFromDocumentText", "critical": true, "params": {
+            "fields": ["text", "abstract"]
+        }},
+        { "order": 3, "name": "FilterOnlyNewDocumentWithDB", "critical": true, "params": {}},
+        { "order": 4, "name": "SaveDocumentToDB", "critical": true, "params": {}}
+    ],
+    "bus": {
+        "entities": []
+    }
+},
+"payload": {
+    "file": "nist.py",
+    "class": "NIST",
+    "entry": {
+        "point": "content",
+        "params": [
+          {"key": "webdriver", "value": {"type": "module", "name": "WebDriver"}},
+          {"key": "url", "value": {"type": "const", "name": "https://www.nist.gov/publications/search?k=&t=&a=&ps=All&ta%5B%5D=249421&n=&d%5Bmin%5D=&d%5Bmax%5D="}},
+          {"key": "max_count_documents", "value": {"type": "const", "name": 500}}
+        ]
+    },
+    "additional_methods": null
+}
+}
