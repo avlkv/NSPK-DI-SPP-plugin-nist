@@ -32,7 +32,7 @@
         "point": "content",
         "params": [
           {"key": "webdriver", "value": {"type": "module", "name": "WebDriver"}},
-          {"key": "url", "value": {"type": "const", "name": "https://www.nist.gov/publications/search?k=&t=&a=&ps=All&ta%5B%5D=249421&n=&d%5Bmin%5D=&d%5Bmax%5D="}},
+          {"key": "url", "value": {"type": "const", "value": "https://www.nist.gov/publications/search?k=&t=&a=&ps=All&ta%5B%5D=249421&n=&d%5Bmin%5D=&d%5Bmax%5D="}},
           {"key": "max_count_documents", "value": {"type": "const", "value": 500}}
         ]
     },

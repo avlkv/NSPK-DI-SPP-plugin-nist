@@ -32,7 +32,7 @@
         "point": "content",
         "params": [
           {"key": "webdriver", "value": {"type": "module", "name": "WebDriver"}},
-          {"key": "url", "value": {"type": "const", "name": "https://www.nist.gov/news-events/news/search?key=&topic-op=or&topic-area-fieldset%5B%5D=249421"}},
+          {"key": "url", "value": {"type": "const", "value": "https://www.nist.gov/news-events/news/search?key=&topic-op=or&topic-area-fieldset%5B%5D=249421"}},
           {"key": "max_count_documents", "value": {"type": "const", "value": 500}}
         ]
     },
