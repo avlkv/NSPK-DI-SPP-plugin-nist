@@ -170,14 +170,6 @@ class NIST:
         # ========================================
         ...
 
-    def _encounter_pages(self) -> str:
-        _base = self.URL
-        _params = '&page='
-        page = 0
-        while True:
-            url = _base + _params + str(page)
-            page += 1
-            yield url
 
     def _find_document_text_for_logger(self, doc: SPP_document):
         """
