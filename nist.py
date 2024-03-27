@@ -6,12 +6,16 @@
 import logging
 import requests
 import time
-import datetime
+from datetime import datetime
 import dateutil.parser
 import re
 from bs4 import BeautifulSoup
 
 from src.spp.types import SPP_document
+from selenium.webdriver.chrome.webdriver import WebDriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 
 
 class NIST:
@@ -25,95 +29,12 @@ class NIST:
 
 
     """
-    HOST = 'https://www.nist.gov/news-events/news'
+    # HOST = 'https://www.nist.gov/news-events/news'
     SOURCE_NAME = 'nist'
-    TAGS: list[str] = [
-        "<option value=249466>Advanced communications</option>",
-        "<option value=248311>-Quantum communications</option>",
-        # "<option value=248316>-Wireless (RF)</option>",
-        # "<option value=248376>-Building codes and standards</option>",
-        # "<option value=248381>-Building control systems</option>",
-        # "<option value=248486>Electronics</option>",
-        # "<option value=248491>-Electromagnetics</option>",
-        # "<option value=248526>-Flexible electronics</option>",
-        # "<option value=248496>-Magnetoelectronics</option>",
-        # "<option value=248501>-Optoelectronics</option>",
-        # "<option value=249491>-Organic electronics</option>",
-        # "<option value=248511>-Semiconductors</option>",
-        # "<option value=248516>-Sensors</option>",
-        # "<option value=248521>-Superconducting electronics</option>",
-        # "<option value=249421>Information technology</option>",
-        # "<option value=2753736>-Artificial intelligence</option>",
-        # "<option value=2800826>--AI measurement and evaluation</option>",
-        # "<option value=2788806>--Applied AI</option>",
-        # "<option value=2788801>--Fundamental AI</option>",
-        # "<option value=2800831>--Hardware for AI</option>",
-        # "<option value=2800991>--Machine learning</option>",
-        # "<option value=2800836>--Trustworthy and responsible AI</option>",
-        # "<option value=248701>-Biometrics</option>",
-        # "<option value=248706>-Cloud computing and virtualization</option>",
-        # "<option value=248711>-Complex systems</option>",
-        # "<option value=248716>-Computational science</option>",
-        # "<option value=248721>-Conformance testing</option>",
-        # "<option value=248726>-Cyber-physical systems</option>",
-        # "<option value=2746861>--Smart cities</option>",
-        # "<option value=248731>-Cybersecurity</option>",
-        # "<option value=248746>--Cryptography</option>",
-        # "<option value=2753741>--Cybersecurity education and workforce development</option>",
-        # "<option value=2788811>--Cybersecurity measurement</option>",
-        # "<option value=248736>--Identity and access management</option>",
-        # "<option value=2788816>--Privacy engineering</option>",
-        # "<option value=248751>--Risk management</option>",
-        # "<option value=2788821>--Securing emerging technologies</option>",
-        # "<option value=2788826>--Trustworthy networks</option>",
-        # "<option value=2788831>--Trustworthy platforms</option>",
-        # "<option value=248756>-Data and informatics</option>",
-        # "<option value=248761>--Human language technology</option>",
-        # "<option value=248766>--Information retrieval</option>",
-        # "<option value=248781>-Federal information processing standards (FIPS)</option>",
-        # "<option value=248786>-Health IT</option>",
-        # "<option value=2748441>-Internet of Things (IoT)</option>",
-        # "<option value=248796>-Interoperability testing</option>",
-        # "<option value=248801>-Mobile</option>",
-        # "<option value=248806>-Networking</option>",
-        # "<option value=2753766>--Mobile and wireless networking</option>",
-        # "<option value=2753756>--Network management and monitoring</option>",
-        # "<option value=248811>--Network modeling and analysis</option>",
-        # "<option value=248771>--Natural language processing</option>",
-        # "<option value=2753746>--Network security and robustness</option>",
-        # "<option value=2753751>--Network test and measurement</option>",
-        # "<option value=248816>--Next generation networks</option>",
-        # "<option value=2753761>--Protocol&nbsp;design and standardization</option>",
-        # "<option value=2753771>--Software defined and virtual networks</option>",
-        # "<option value=248821>-Privacy</option>",
-        # "<option value=248826>-Software research</option>",
-        # "<option value=248841>--Software testing</option>",
-        # "<option value=248846>-Usability and human factors</option>",
-        # "<option value=248851>--Accessibility</option>",
-        # "<option value=248776>-Video analytics</option>",
-        # "<option value=2788836>-Virtual / augmented reality</option>",
-        # "<option value=248856>-Visualization research</option>",
-        # "<option value=248861>-Voting systems</option>",
-        # "<option value=2748236>Infrastructure</option>",
-        # "<option value=248936>-Technology commercialization</option>",
-        # "<option value=249011>Mathematics and statistics</option>",
-        # "<option value=249016>-Experiment design</option>",
-        # "<option value=249021>-Image and signal processing</option>",
-        # "<option value=249031>-Modeling and simulation research</option>",
-        # "<option value=249036>-Numerical methods and software</option>",
-        # "<option value=249041>-Statistical analysis</option>",
-        # "<option value=249046>-Uncertainty quantification</option>",
-        # "<option value=249341>Standards</option>",
-        # "<option value=249346>-Accreditation</option>",
-        # "<option value=249416>-Calibration services</option>",
-        # "<option value=249366>-Conformity assessment</option>",
-        # "<option value=249371>-Documentary standards</option>",
-        # "<option value=2748516>-Frameworks</option>",
-        # "<option value=249391>-Standards education</option>",
-    ]
     _content_document: list[SPP_document]
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, webdriver: WebDriver, url: str, max_count_documents: int = None,
+                 last_document: SPP_document = None, *args, **kwargs):
         """
         Конструктор класса парсера
 
@@ -122,8 +43,21 @@ class NIST:
         """
         # Обнуление списка
         self._content_document = []
+        self.driver = webdriver
+        self.wait = WebDriverWait(self.driver, timeout=20)
+        self._max_count_documents = max_count_documents
+        self._last_document = last_document
+        if url:
+            self.URL = url
+            if 'news-events' in self.URL:
+                self.DOC_TYPE = 'NEWS'
+            elif 'publications' in self.URL:
+                self.DOC_TYPE = 'PUBS'
+            else:
+                raise ValueError('unknown document types in provided url (not news or publications)')
+        else:
+            raise ValueError('url must be a link to the swift topic main page')
 
-        # Логер должен подключаться так. Вся настройка лежит на платформе
         self.logger = logging.getLogger(self.__class__.__name__)
         self.logger.debug(f"Parser class init completed")
         self.logger.info(f"Set source: {self.SOURCE_NAME}")
@@ -136,8 +70,12 @@ class NIST:
         :rtype:
         """
         self.logger.debug("Parse process start")
-        self._parse()
-        self.logger.debug("Parse process finished")
+        try:
+            self._parse()
+        except Exception as e:
+            self.logger.debug(f'Parsing stopped with error: {e}')
+        else:
+            self.logger.debug("Parse process finished")
         return self._content_document
 
     def _parse(self):
@@ -146,81 +84,102 @@ class NIST:
         :return:
         :rtype:
         """
-        # HOST - это главная ссылка на источник, по которому будет "бегать" парсер
-        self.logger.debug(F"Parser enter to {self.HOST}")
+        # URL - это главная ссылка на источник, по которому будет "бегать" парсер
+        self.logger.debug(F"Parser enter to {self.URL}")
 
         # ========================================
         # Тут должен находится блок кода, отвечающий за парсинг конкретного источника
         # -
 
-        urls = []
+        self.driver.get(self.URL)
 
-        for i in range(len(self.TAGS)):
-            splitter = "<option value=|>"
-            massive_s = re.split(splitter, self.TAGS[i])
-            number = massive_s[1]
-            url = 'https://www.nist.gov/news-events/news/search?k=&t='
-            req = requests.get(url + number)
-            if req.status_code == 200:
-                req.encoding = "UTF-8"
-                soup = BeautifulSoup(req.content.decode('utf-8'), 'html.parser')
-                try:
-                    last_page = int(
-                        soup.find('li', class_="pager__item pager__item--last").find('a')['href'].split('page')[1][1::])
-                except AttributeError:
-                    last_page = 0
-                for j in range(last_page + 1):
-                    req = requests.get(url + number + "&page=" + str(j))
-                    req.encoding = "UTF-8"
-                    soup = BeautifulSoup(req.content.decode('utf-8'), 'html.parser')
-                    articles = soup.find_all('div', class_="nist-teaser__content-wrapper")
-                    for article in articles:
+        for page in self._encounter_pages():
 
-                        news_date = datetime.datetime.strptime(article.find('time').text, '%B %d, %Y')
+            links = self.driver.find_elements(By.CLASS_NAME, 'nist-teaser')
+            for link in links:
+                doc_link = link.find_element(By.TAG_NAME, 'a').get_attribute('href')
+                self.driver.execute_script("window.open('');")
+                self.driver.switch_to.window(self.driver.window_handles[1])
+                self.driver.get(doc_link)
+                self.wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, '.nist-page__title')))
 
-                        # Проверяем, что новость не ранее 01.01.2019
-                        # if news_date > self.DATE_BEGIN:
-                        #     # print(article.find('a')['href'])
-                        urls.append("https://www.nist.gov" + article.find('a')['href'])
-                            # print(article.find('a')['href'])
-                    # print(url + number + "&page=" + str(j))
-            else:
-                # logger.error('Ошибка загрузки')
-                ...
+                title = self.driver.find_element(By.CLASS_NAME, 'nist-page__title').text
+                pub_date = dateutil.parser.parse(
+                    self.driver.find_element(By.TAG_NAME, 'time').get_attribute('datetime'))
+                tags = self.driver.find_element(By.CLASS_NAME, 'nist-tags').text
 
-        new_urls = []
-        for i in range(len(urls)):
-            if not urls[i] in new_urls:
-                # print(urls[i])
-                new_urls.append(urls[i])
+                if self.DOC_TYPE == 'NEWS':
+                    try:
+                        abstract = self.driver.find_element(By.XPATH, '//*[contains(@class, \'nist-block\')]/h3').text
+                    except:
+                        self.logger.debug('Empty abstract')
+                        abstract = None
+                    text_content = self.driver.find_element(By.CLASS_NAME, 'text-with-summary').text
+                    web_link = doc_link
+                    other_data = {'tags': tags, 'author': None}
 
-        for ref in (range(len(new_urls))):
-            web_link = new_urls[ref]
-            title, load_date, s_text, pub_date_text = self._document_parse(web_link)
+                elif self.DOC_TYPE == 'PUBS':
+                    try:
+                        abstract = self.driver.find_element(By.CLASS_NAME, 'text-with-summary').text
+                    except:
+                        self.logger.debug('Empty abstract')
+                        abstract = None
+                    text_content = None
+                    try:
+                        author = [auth.text for auth in self.driver.find_elements(By.CLASS_NAME, 'nist-author')]
+                    except:
+                        self.logger.debug('Empty author')
+                        author = None
+                    try:
+                        pdf_link = self.driver.find_element(By.XPATH, '//a[contains(text(), \'doi\')]').get_attribute(
+                            'href')
+                        self.driver.get(pdf_link)
+                        time.sleep(0.5)
 
-            document = SPP_document(
-                doc_id=None,
-                title=title,
-                abstract=None,
-                text=s_text,
-                web_link=web_link,
-                local_link=None,
-                other_data={},
-                pub_date=dateutil.parser.isoparse(pub_date_text),
-                load_date=load_date
-            )
+                        if self.driver.current_url.endswith('.pdf'):
+                            web_link = self.driver.current_url
+                        else:
+                            self.logger.debug('Publication doesn\'t have open pdf')
+                            web_link = self.driver.current_url
+                    except:
+                        self.logger.debug('Empty doi link => web_link = doc_link (NIST pub page)')
+                        web_link = doc_link
 
-            # Логирование найденного документа
-            self.logger.info(self._find_document_text_for_logger(document))
+                    other_data = {'tags': tags, 'author': author}
 
-            self._content_document.append(document)
-            time.sleep(1)
+
+                else:
+                    raise Exception('unknown doc type')
+
+                doc = SPP_document(None,
+                                   title,
+                                   abstract,
+                                   text_content,
+                                   web_link,
+                                   None,
+                                   other_data,
+                                   pub_date,
+                                   datetime.now())
+
+                self.find_document(doc)
+
+                self.driver.close()
+                self.driver.switch_to.window(self.driver.window_handles[0])
+
         # ---
         # ========================================
         ...
 
-    @staticmethod
-    def _find_document_text_for_logger(doc: SPP_document):
+    def _encounter_pages(self) -> str:
+        _base = self.URL
+        _params = '&page='
+        page = 0
+        while True:
+            url = _base + _params + str(page)
+            page += 1
+            yield url
+
+    def _find_document_text_for_logger(self, doc: SPP_document):
         """
         Единый для всех парсеров метод, который подготовит на основе SPP_document строку для логера
         :param doc: Документ, полученный парсером во время своей работы
@@ -230,40 +189,15 @@ class NIST:
         """
         return f"Find document | name: {doc.title} | link to web: {doc.web_link} | publication date: {doc.pub_date}"
 
-    def _document_parse(self, ref):
+    def find_document(self, _doc: SPP_document):
         """
-        Метод для непосредственного парсинга важных данных документа по ссылке
-        :param ref:
-        :type ref:
-        :return:
-        :rtype:
+        Метод для обработки найденного документа источника
         """
-        try:
-            ufr = requests.get(ref)  # делаем запрос
-            ufr.encoding = 'utf-8'
+        if self._last_document and self._last_document.hash == _doc.hash:
+            raise Exception(f"Find already existing document ({self._last_document})")
 
-            if ufr.status_code == 200:
-                idk = ref.split("/")
-                f_name = idk[-1]
-                load_date = datetime.datetime.now()
+        self._content_document.append(_doc)
+        self.logger.info(self._find_document_text_for_logger(_doc))
 
-                soup = BeautifulSoup(ufr.content.decode('utf-8'), 'html.parser')
-                s_text = ""
-                for j in soup.find_all("div", class_="text-with-summary"):
-                    for link2 in j.find_all("p"):
-                        s_text = s_text + link2.text
-                s_text = s_text.replace('\n', ' ').replace('\t', ' ').replace("¶", " ").replace("▲", " ").replace(
-                    '\xa0', ' ').replace('\r', ' ').replace('—', "-").replace("’", "'").replace("“", '"').replace("”",
-                                                                                                                  '"').replace(
-                    " ", " ")
-                while '  ' in s_text:
-                    s_text = s_text.replace('  ', ' ')
-
-                div_datetime = soup.find("div", class_='font-heading-md')
-                pub_date = div_datetime.find('time').attrs['datetime']
-
-                return f_name, load_date, s_text, pub_date
-            else:
-                self.logger.debug(f'Document processing error. Returned status code {ufr.status_code}')
-        except Exception as e:
-            self.logger.debug(f'Document processing error. Exception {e}')
+        if self._max_count_documents and len(self._content_document) >= self._max_count_documents:
+            raise Exception(f"Max count articles reached ({self._max_count_documents})")
